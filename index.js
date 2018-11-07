@@ -15,9 +15,89 @@ var urlAllProjects = 'http://10.2.1.119:5000/api/project/allProjects';
 //     });
 // }
 
+function createTestCasePrefix(projectName, cb, cb2) {
+    var projectNameSplit = projectName.trim().split("");
+    projectNameSplit.map((char, index) => {
+        if (char == " ") {
+            var testCasePrefix = projectNameSplit[0] + "_" + projectNameSplit[index + 1].toUpperCase()
+            cb(testCasePrefix)
+        }
+    })
+    var testCasePrefix = projectName[0]
+    cb2(testCasePrefix)
+}
 
-function getProjectInfoFromApi(url) {
-    var info = {
+
+
+function getUrlSpec(urlAllProjects, projectName, cb) {
+    axios.default.get(urlAllProjects).then((res) => {
+        res.data.map((project) => {
+            if (project.projectName == projectName) {
+                var urlSpec = "http://10.2.1.119:5000/api/userStory/allStories/" + project._id + "";
+                cb(urlSpec)
+            }
+        })
+    })
+}
+// function createRequirementOnReqSpecOnProject(params) {
+
+// }
+function createReqSpecOnProject(urlSpec) {
+    axios.default.get(urlSpec).then((res) => {
+        res.data.subjects.map((reqSpec) => {
+            var params = {
+                devKey: "20b497c0a4ae51e2869653bcca22727e"
+            }
+            getTestProjectByName(params.devKey, res.data.projectName, function (projectId) {
+                params.testprojectid = projectId;
+                params.parentid = projectId;
+                params.reqspecdocid = reqSpec.subjectName;
+                params.title = reqSpec.subjectName;
+                params.scope = reqSpec.subjectDescreption;
+                client.methodCall('tl.addReqSpec', [params], function (error, value) {
+                    var paramsForReq = {
+                        status: "V",
+                        requirementtype: "3",
+                        // number of test cases neded
+                        expectedcoverage: "2"
+                    }
+                    reqSpec.requirements.map((requirement) => {
+                        getReqSpecByDocId(params.devKey, params.testprojectid, params.reqspecdocid, function (reqSpecId) {
+                            paramsForReq.devKey = params.devKey;
+                            paramsForReq.testprojectid = params.testprojectid;
+                            paramsForReq.reqspecid = reqSpecId;
+                            paramsForReq.requirementdocid = requirement.title;
+                            paramsForReq.title = requirement.title;
+                            paramsForReq.scope = requirement.userStory;
+                            client.methodCall('tl.addRequirement', [paramsForReq], function (error, value) {
+                                console.log(error, value);
+                            })
+                        })
+
+                    });
+                    console.log(error, value);
+                })
+            })
+        })
+        // console.log(res.data.subjects);
+
+    });
+};
+
+// info = {
+//     devKey: "20b497c0a4ae51e2869653bcca22727e",
+//     testprojectid: '',
+//     reqspecid: "sdf",
+//     requirementdocid: "",
+//     title: "",
+//     scope: "",
+//     status: "V",
+//     requirementtype: "3",
+//     // number of test cases neded
+//     expectedcoverage: "2"
+// }
+function getProjectInfoFromApi(urlAllProjects, projectName) {
+    var infoForCraeteProject = {
         devKey: "20b497c0a4ae51e2869653bcca22727e",
         testprojectname: "",
         testcaseprefix: "",
@@ -26,10 +106,35 @@ function getProjectInfoFromApi(url) {
         active: 1,
         public: 1
     }
-    axios.default.get(url).then((res) => {
-        return info;
+    getUrlSpec(urlAllProjects, projectName, function (urlSpec) {
+        axios.default.get(urlSpec).then((res) => {
+            infoForCraeteProject.testprojectname = res.data.projectName;
+            createTestCasePrefix(projectName, function (testCasePrefix) {
+                infoForCraeteProject.testcaseprefix = testCasePrefix;
+            }, function (testCasePrefix) {
+                infoForCraeteProject.testcaseprefix = testCasePrefix;
+            })
+            client.methodCall('tl.createTestProject', [infoForCraeteProject], (error, value) => {
+                createReqSpecOnProject(urlSpec);
+                console.log(error, value);
+            })
+
+
+        })
     })
 }
+
+createProject('http://10.2.1.119:5000/api/project/allProjects', 'TSG');
+// addRecSpec('http://10.2.1.119:5000/api/userStory/allStories/5bdf0ecb720006107cc1d6d9','TSG','Main screen');
+// addRequirement('http://10.2.1.119:5000/api/userStory/allStories/5bdf0ecb720006107cc1d6d9', 'TSG', 'login', '11111111');
+
+
+
+function createProject(urlAllProjects, projectName) {
+    getProjectInfoFromApi(urlAllProjects, projectName);
+}
+
+
 
 
 function getReqSpecInfoFromApi(url, message, reqSpecName) {
@@ -59,6 +164,9 @@ function getReqSpecInfoFromApi(url, message, reqSpecName) {
         })
     })
 }
+
+
+
 
 
 
@@ -108,7 +216,7 @@ function getReqInfoFromApi(url, projectName, reqSpecDocId, requirementName) {
 }
 
 
-addRequirement('http://10.2.1.119:5000/api/userStory/allStories/5bdf0ecb720006107cc1d6d9', 'demo 2', 'login', 'e')
+// addRequirement('http://10.2.1.119:5000/api/userStory/allStories/5bdf0ecb720006107cc1d6d9', 'demo 2', 'login', 'e')
 
 
 
@@ -121,13 +229,6 @@ function getReqSpecByDocId(devKey, testProjectId, reqSpecDocId, cb) {
     });
 }
 
-function createProject(url) {
-    var params = getProjectInfoFromApi(url);
-    console.log(params);
-    var createProject = client.methodCall('tl.createTestProject', [params], (error, value) => {
-        console.log(error, value);
-    })
-}
 
 function addRecSpec(url, message, reqSpecName) {
     getReqSpecInfoFromApi(url, message, reqSpecName)
