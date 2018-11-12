@@ -1,0 +1,19 @@
+{
+  "name": "rtsuit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "redis": "^2.8.0",
+    "testlink-api-client": "^0.0.8",
+    "testlink-xmlrpc": "^1.9.18-3",
+    "xmlrpc": "^1.3.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
